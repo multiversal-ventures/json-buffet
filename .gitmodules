@@ -1,0 +1,3 @@
+[submodule "thirdparty/rapidjson"]
+	path = thirdparty/rapidjson
+	url = git@github.com:saidinesh5/rapidjson.git
