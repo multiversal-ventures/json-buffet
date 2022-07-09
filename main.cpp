@@ -6,68 +6,99 @@
 #include <fstream>
 #include <iostream>
 
+const uint8_t max_pre_depth = 3; // Save json from pre_depth 3 
+
 struct MyHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHandler> {
     uint64_t open_object_count_ = 0;
     uint64_t open_array_count_ = 0;
     bool found_term = false;
+    char* search_term;
+    std::string result;
+
+    MyHandler(char* _search_term) {
+        search_term = _search_term;        
+    }
 
     bool StartObject(size_t offset) { 
-        std::cout << "StartObject(" << open_object_count_++ <<") at " << offset << std::endl; return true; 
+        open_object_count_++;
+        
+        std::cerr << "StartObject(" << open_object_count_++ <<") at " << offset << std::endl; 
+        return true; 
     }
     bool Key(rapidjson::SizeType offset, const char* str, rapidjson::SizeType length, bool copy) {
-        std::cout << "Key(" << str << ", " << length << ", " << std::boolalpha << copy << ") at " << offset << std::endl;
+        std::cerr << "Key(" << str << ", " << length << ", " << std::boolalpha << copy << ") at " << offset << std::endl;
         return true;
     }
     bool Bool(bool value) {
-        std::cout << "Bool(" << value << ")" << std::endl;
+        std::cerr << "Bool(" << value << ")" << std::endl;
         return true;
     }
     bool Uint(unsigned int value) {
-        std::cout << "UInt(" << value << ")" << std::endl;
+        std::cerr << "UInt(" << value << ")" << std::endl;
         return true;
     }
     bool Uint64(uint64_t value) {
-        std::cout << "UInt64(" << value << ")" << std::endl;
+        std::cerr << "UInt64(" << value << ")" << std::endl;
         return true;
     }
     bool Int(int value) {
-        std::cout << "Int(" << value << ")" << std::endl;
+        std::cerr << "Int(" << value << ")" << std::endl;
         return true;
     }
     bool Int64(int64_t value) {
-        std::cout << "Int64(" << value << ")" << std::endl;
+        std::cerr << "Int64(" << value << ")" << std::endl;
         return true;
     }
     bool Double(double value ) {
-        std::cout << "Double(" << value << ")" << std::endl;
+        std::cerr << "Double(" << value << ")" << std::endl;
         return true;
     }
     bool RawNumber(const Ch *str, rapidjson::SizeType length, bool copy) {
-        std::cout << "Number(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
+
+        if (strcmp(search_term, str) == 0) {
+            found_term = true; // do this in worker so we can do multiple terms later
+            std::cout <<  "FOUND: " << str  << "DEPTH: Obj(" << open_object_count_ << "), Array(" << open_array_count_ << ")" << std::endl;
+        }
+        std::cerr << "Number(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
         return true;
     }
     bool String (const Ch *str, rapidjson::SizeType length, bool copy) {
-        std::cout << "String(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
+        std::cerr << "String(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
         return true;
     }
     bool EndObject(size_t offset, rapidjson::SizeType memberCount) {
+        open_object_count_--;
         // Wait until If no other open objects. Tag this with the first startedObject
-         std::cout << "EndObject(" << --open_object_count_ << ", "   << memberCount << ") at " << offset << std::endl; return true; 
+        std::cerr << "EndObject(" << open_object_count_ << ", "   << memberCount << ") at " << offset << std::endl; 
+         // If we have found the term, find the last 
+         return true;
     }
-    bool StartArray(rapidjson::SizeType offset) { std::cout << "StartArray(" << open_array_count_++ << ") at " << offset << std::endl; return true; }
-    bool EndArray(rapidjson::SizeType offset, rapidjson::SizeType elementCount) {
+    bool StartArray(rapidjson::SizeType offset) { 
         
-         std::cout << "EndArray(" << --open_array_count_ << ", " << elementCount << ") at " << offset << std::endl; return true; 
+        std::cerr << "StartArray(" << open_array_count_ << ") at " << offset << std::endl; 
+        open_array_count_++;
+        
+        return true; 
+    }
+    bool EndArray(rapidjson::SizeType offset, rapidjson::SizeType elementCount) {
+        --open_array_count_;
+         std::cerr << "EndArray(" << open_array_count_ << ", " << elementCount << ") at " << offset << std::endl; return true; 
+         return true;
     }
 };
 
 int main(int argc, char *argv[])
 {
+   //std::cout << argc << std::endl;
+    char * search_term = (char *)"7777777777";
+    if (argc >= 2 ) {
+        search_term = argv[1];
+    }
     rapidjson::IStreamWrapper isw(std::cin);
-    MyHandler handler;
+    MyHandler handler((char*)search_term);
     rapidjson::Reader reader;
     // wait 
-    reader.Parse<rapidjson::kParseIterativeFlag>(isw, handler);
+    reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag  >(isw, handler);
 
     return 0;
 }
