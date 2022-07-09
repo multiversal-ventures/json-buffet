@@ -7,7 +7,12 @@
 #include <iostream>
 
 struct MyHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHandler> {
-    bool StartObject(size_t offset) { std::cout << "StartObject() at " << offset << std::endl; return true; }
+    uint64_t open_object_count_ = 0;
+    uint64_t open_array_count_ = 0;
+
+    bool StartObject(size_t offset) { 
+        std::cout << "StartObject(" << open_object_count_++ <<") at " << offset << std::endl; return true; 
+    }
     bool Key(rapidjson::SizeType offset, const char* str, rapidjson::SizeType length, bool copy) {
         std::cout << "Key(" << str << ", " << length << ", " << std::boolalpha << copy << ") at " << offset << std::endl;
         return true;
@@ -44,9 +49,15 @@ struct MyHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHand
         std::cout << "String(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
         return true;
     }
-    bool EndObject(size_t offset, rapidjson::SizeType memberCount) { std::cout << "EndObject(" << memberCount << ") at " << offset << std::endl; return true; }
-    bool StartArray(rapidjson::SizeType offset) { std::cout << "StartArray() at " << offset << std::endl; return true; }
-    bool EndArray(rapidjson::SizeType offset, rapidjson::SizeType elementCount) { std::cout << "EndArray(" << elementCount << ") at " << offset << std::endl; return true; }
+    bool EndObject(size_t offset, rapidjson::SizeType memberCount) {
+        // Wait until If no other open objects. Tag this with the first startedObject
+         std::cout << "EndObject(" << --open_object_count_ << ", "   << memberCount << ") at " << offset << std::endl; return true; 
+    }
+    bool StartArray(rapidjson::SizeType offset) { std::cout << "StartArray(" << open_array_count_++ << ") at " << offset << std::endl; return true; }
+    bool EndArray(rapidjson::SizeType offset, rapidjson::SizeType elementCount) {
+        
+         std::cout << "EndArray(" << --open_array_count_ << ", " << elementCount << ") at " << offset << std::endl; return true; 
+    }
 };
 
 int main(int argc, char *argv[])
@@ -54,6 +65,8 @@ int main(int argc, char *argv[])
     rapidjson::IStreamWrapper isw(std::cin);
     MyHandler handler;
     rapidjson::Reader reader;
+    // wait 
     reader.Parse<rapidjson::kParseIterativeFlag>(isw, handler);
+
     return 0;
 }
