@@ -16,11 +16,11 @@ struct MyHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHand
         std::cout << "Bool(" << value << ")" << std::endl;
         return true;
     }
-    bool UInt(unsigned int value) {
+    bool Uint(unsigned int value) {
         std::cout << "UInt(" << value << ")" << std::endl;
         return true;
     }
-    bool UInt64(uint64_t value) {
+    bool Uint64(uint64_t value) {
         std::cout << "UInt64(" << value << ")" << std::endl;
         return true;
     }
@@ -54,6 +54,6 @@ int main(int argc, char *argv[])
     rapidjson::IStreamWrapper isw(std::cin);
     MyHandler handler;
     rapidjson::Reader reader;
-    reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
+    reader.Parse<rapidjson::kParseIterativeFlag>(isw, handler);
     return 0;
 }
