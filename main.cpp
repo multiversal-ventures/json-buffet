@@ -9,6 +9,7 @@
 struct MyHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHandler> {
     uint64_t open_object_count_ = 0;
     uint64_t open_array_count_ = 0;
+    bool found_term = false;
 
     bool StartObject(size_t offset) { 
         std::cout << "StartObject(" << open_object_count_++ <<") at " << offset << std::endl; return true; 
@@ -41,11 +42,11 @@ struct MyHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHand
         std::cout << "Double(" << value << ")" << std::endl;
         return true;
     }
-    bool 	RawNumber(const Ch *str, rapidjson::SizeType length, bool copy) {
+    bool RawNumber(const Ch *str, rapidjson::SizeType length, bool copy) {
         std::cout << "Number(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
         return true;
     }
-      bool 	String (const Ch *str, rapidjson::SizeType length, bool copy) {
+    bool String (const Ch *str, rapidjson::SizeType length, bool copy) {
         std::cout << "String(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
         return true;
     }
