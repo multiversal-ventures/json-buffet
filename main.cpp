@@ -12,7 +12,7 @@ typedef ::std::size_t SizeType;
 #include <rapidjson/istreamwrapper.h>
 #include <vector>
 
-const uint8_t max_pre_depth = 2; // Save json from pre_depth 3
+uint8_t max_pre_depth = 2; // Save json from pre_depth 3
 
 struct ExtractionMarker {
   ExtractionMarker() {}
@@ -297,6 +297,9 @@ int main(int argc, char *argv[]) {
   char *search_term = (char *)"7777777777";
   if (argc >= 2) {
     search_term = argv[1];
+  }
+  if (argc >= 2) {
+    max_pre_depth = atoi(argv[2]);
   }
   rapidjson::IStreamWrapper isw(std::cin);
   MyHandler handler((char *)search_term);
