@@ -10,7 +10,7 @@ typedef ::std::size_t SizeType;
 #include <rapidjson/istreamwrapper.h>
 #include <vector>
 
-const uint8_t max_pre_depth = 3; // Save json from pre_depth 3
+const uint8_t max_pre_depth = 2; // Save json from pre_depth 3
 
 struct ExtractionMarker {
   ExtractionMarker() {}
@@ -39,8 +39,9 @@ struct MyHandler
   MyHandler(char *_search_term) { search_term = _search_term; }
 
   ExtractionMarker* fetch_extraction_marker(size_t depth) {
-     auto it = depth_markers.find(open_object_count_);
+     auto it = depth_markers.find(depth);
     if (it == depth_markers.end()) { // no object open found at this depth
+
         return NULL;
     } else {
       return &(it->second.back());
@@ -145,7 +146,7 @@ struct MyHandler
       found_term = true; // do this in worker so we can do multiple terms later
       size_t depth = open_object_count_;
       size_t parent = 0; 
-      if (depth > max_pre_depth + 1) {
+      if (depth > max_pre_depth) {
         parent = depth - max_pre_depth;
       }
 
