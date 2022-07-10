@@ -48,13 +48,13 @@ struct MyHandler
   OFFSET_START fetch_extraction_marker(size_t depth) {
     auto it = depth_markers.find(depth);
     if (it == depth_markers.end()) { // no object open found at this depth
-      std::cout << "ASDKOLANSDLKASDNLKASD" << depth << " ASDASDASDASD"
-                << std::endl;
-      return 0; // SHIT
+    //   std::cerr << "ASDKOLANSDLKASDNLKASD" << depth << " ASDASDASDASD"
+    //             << std::endl;
+      return 0; // TODO: Handle with pointer logic
     } else {
       auto em = it->second.back();
-      std::cout << "ASDKOLANSDLKASDNLKASD  " << depth << " ASDASDASDASD  " << em
-                << std::endl;
+    //   std::cerr << "ASDKOLANSDLKASDNLKASD  " << depth << " ASDASDASDASD  " << em
+    //             << std::endl;
       return em;
     }
   }
@@ -161,10 +161,10 @@ struct MyHandler
         parent = depth - max_pre_depth;
       }
       auto e = fetch_extraction_marker(parent);
-      std::cout << e << std::endl;
+      std::cerr << e << std::endl;
       add_extraction_marker(e);
 
-      std::cout << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
+      std::cerr << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
                 << std::endl
                 << depth_markers.size() << std::endl;
 
@@ -186,10 +186,10 @@ struct MyHandler
         parent = depth - max_pre_depth;
       }
       auto e = fetch_extraction_marker(parent);
-      std::cout << e << std::endl;
+      std::cerr << e << std::endl;
       add_extraction_marker(e);
 
-      std::cout << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
+      std::cerr << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
                 << std::endl
                 << depth_markers.size() << std::endl;
 
@@ -218,33 +218,33 @@ struct MyHandler
   void render_map(std::map<size_t, std::vector<OFFSET_START>> mm) {
 
     for (auto it = mm.begin(); it != mm.end(); ++it) {
-      std::cout << it->first << " => ";
+      std::cerr << it->first << " => ";
       render_vector(it->second);
-      std::cout << std::endl;
+      std::cerr << std::endl;
     }
   }
 
   void render_vector_ptr(std::vector<OFFSET_START *> markers) {
-    std::cout << "[" << std::endl;
+    std::cerr << "[" << std::endl;
     for (auto it = markers.begin(); it != markers.end(); ++it) {
 
       auto em = *it;
       printf("Address of x is %p\n", (void *)em);
-      std::cout << "(" << *em << ")" << std::endl;
+      std::cerr << "(" << *em << ")" << std::endl;
     }
 
-    std::cout << "]" << std::endl;
+    std::cerr << "]" << std::endl;
   }
 
   void render_vector(std::vector<OFFSET_START> markers) {
-    std::cout << "[" << std::endl;
+    std::cerr << "[" << std::endl;
     for (auto it = markers.begin(); it != markers.end(); ++it) {
 
       auto em = *it;
-      std::cout << "(" << em << ")" << std::endl;
+      std::cerr << "(" << em << ")" << std::endl;
     }
 
-    std::cout << "]" << std::endl;
+    std::cerr << "]" << std::endl;
   }
 
   OFFSET_END fetch_offset_end(OFFSET_START offset_start) {
@@ -263,47 +263,44 @@ struct MyHandler
     render_vector(extraction_markers);
 
     // extract JSON items from offset results
-    std::cout << "Extraction at contains (" << extraction_markers.size()
-              << "):";
+    std::cerr << "Extraction at contains (" << extraction_markers.size()
+              << ")" << std::endl;
 
     for (auto offset_start_ptr : extraction_markers) {
       auto offset_start = offset_start_ptr;
       auto offset_end = fetch_offset_end(offset_start);
-      std::cout << "tail -c +" << offset_start << " | head -c "
+      std::cout << "" << offset_start << ", "
                 << offset_end - offset_start <<  std::endl;
     }
-
-    // std::map<size_t, ExtractionMarker *>::iterator it =
-    //     extraction_markers.begin();
-    // while (it != extraction_markers.end()) {
-    //   ExtractionMarker *em = it->second;
-    //   std::cout << "KKKKK(" << it->first << ")[" << em->offset_start << " - "
-    //             << em->offset_end << "]" << std::endl;
-    //   it++;
-    // }
     std::cout << std::endl;
   }
 };
 
 
+MyHandler* HANDLER = NULL;
+
 void signalHandler( int signum ) {
-   std::cout << "Interrupt signal (" << signum << ") received." << std::endl;
+   std::cerr << "Interrupt signal (" << signum << ") received. Printing result early" << std::endl;
 
    // cleanup and close up stuff here  
    // terminate program  
+   if (HANDLER != NULL )
+   HANDLER->Result();
 
    exit(signum);  
 }
 
 
+
 int main(int argc, char *argv[]) {
-  // std::cout << argc << std::endl;
+  // std::cerr << argc << std::endl;
   char *search_term = (char *)"7777777777";
   if (argc >= 2) {
     search_term = argv[1];
   }
   rapidjson::IStreamWrapper isw(std::cin);
   MyHandler handler((char *)search_term);
+  HANDLER = &handler;
   rapidjson::Reader reader;
 
   signal(SIGINT, signalHandler);  
