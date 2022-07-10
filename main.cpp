@@ -3,6 +3,8 @@
 namespace rapidjson {
 typedef ::std::size_t SizeType;
 }
+#include <csignal>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -18,6 +20,10 @@ struct ExtractionMarker {
   size_t offset_end;
 };
 
+typedef size_t OFFSET_START;
+typedef size_t OFFSET_END;
+typedef size_t DEPTH;
+
 struct MyHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MyHandler> {
   uint64_t open_object_count_ = 0;
@@ -26,7 +32,8 @@ struct MyHandler
   char *search_term;
   std::string result;
 
-  std::map<size_t, std::vector<ExtractionMarker>> depth_markers;
+  std::map<DEPTH, std::vector<OFFSET_START>> depth_markers;
+  std::map<OFFSET_START, OFFSET_END> extract_markers;
   /*
     { 0 <-- find the last 0 position and use that as map
 
@@ -34,55 +41,59 @@ struct MyHandler
   */
 
   // <Starting Offset Position, Ending Offset Position>
-  std::vector<ExtractionMarker *> extraction_markers;
+  std::vector<OFFSET_START> extraction_markers;
 
   MyHandler(char *_search_term) { search_term = _search_term; }
 
-  ExtractionMarker* fetch_extraction_marker(size_t depth) {
-     auto it = depth_markers.find(depth);
+  OFFSET_START fetch_extraction_marker(size_t depth) {
+    auto it = depth_markers.find(depth);
     if (it == depth_markers.end()) { // no object open found at this depth
-
-        return NULL;
+      std::cout << "ASDKOLANSDLKASDNLKASD" << depth << " ASDASDASDASD"
+                << std::endl;
+      return 0; // SHIT
     } else {
-      return &(it->second.back());
+      auto em = it->second.back();
+      std::cout << "ASDKOLANSDLKASDNLKASD  " << depth << " ASDASDASDASD  " << em
+                << std::endl;
+      return em;
     }
   }
 
-  void start_object_offset(size_t offset) {
+  void add_extraction_marker(OFFSET_START e) {
 
-    ExtractionMarker em;
-    // std::cout << "Adding object market at: " << object_markers.size() <<
-    // std::endl;
-    em.offset_start = offset;
+    if (!(find(extraction_markers.begin(), extraction_markers.end(), e) !=
+          extraction_markers.end())) {
+      extraction_markers.push_back(e);
+      render_vector(extraction_markers);
+    }
+  }
+
+  void start_object_offset(OFFSET_START offset_start) {
 
     auto it = depth_markers.find(open_object_count_);
     if (it == depth_markers.end()) { // no object open found at this depth
-      std::vector<ExtractionMarker> object_markers;
-      object_markers.push_back(em);
+      std::vector<OFFSET_START> object_markers;
+      object_markers.push_back(offset_start);
       depth_markers.insert(std::make_pair(open_object_count_, object_markers));
     } else {
-      std::vector<ExtractionMarker> object_markers = it->second;
-      object_markers.push_back(em);
+      std::vector<OFFSET_START> object_markers = it->second;
+      object_markers.push_back(offset_start);
       it->second = object_markers;
     }
   }
 
-  void end_object_offset(size_t offset) {
-
-    ExtractionMarker em;
-    em.offset_start = offset;
+  void end_object_offset(OFFSET_END offset_end) {
 
     auto it = depth_markers.find(open_object_count_);
+    std::cerr << "DEPTH ADDING: " << open_object_count_ << std::endl;
     if (it == depth_markers.end()) { // no object open found at this depth
       std::cerr << "SHOULDN'T HAPPEN for " << open_object_count_ << std::endl;
     } else {
-      std::vector<ExtractionMarker> object_markers = it->second;
-      object_markers.back().offset_end = offset + 1;
-        // std::cout << "SETTING " << offset << " For " << object_markers.size()
-        //       << std::endl;
-      it->second = object_markers;
-         
-      
+
+      OFFSET_START object_start = it->second.back();
+      std::cerr << "DEPTH ADDING: " << open_object_count_ << " " << object_start
+                << " " << offset_end << std::endl;
+      extract_markers.insert(std::make_pair(object_start, offset_end + 1));
     }
   }
 
@@ -99,7 +110,7 @@ struct MyHandler
 
     --open_object_count_;
     end_object_offset(offset + 1);
-        //render_map(depth_markers);
+    // render_map(depth_markers);
     // object_markers.at(open_object_count_).offset_end = offset + 1;
 
     // Wait until If no other open objects. Tag this with the first
@@ -145,18 +156,18 @@ struct MyHandler
     if (strcmp(search_term, str) == 0) {
       found_term = true; // do this in worker so we can do multiple terms later
       size_t depth = open_object_count_;
-      size_t parent = 0; 
+      size_t parent = 0;
       if (depth > max_pre_depth) {
         parent = depth - max_pre_depth;
       }
-
-      extraction_markers.push_back(fetch_extraction_marker(parent));
+      auto e = fetch_extraction_marker(parent);
+      std::cout << e << std::endl;
+      add_extraction_marker(e);
 
       std::cout << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
                 << std::endl
                 << depth_markers.size() << std::endl;
 
-      
       //   extraction_markers.insert(
       //       std::make_pair(depth, &object_markers.at(depth)));
     }
@@ -167,6 +178,24 @@ struct MyHandler
   bool String(const Ch *str, rapidjson::SizeType length, bool copy) {
     std::cerr << "String(" << str << ", " << length << ", " << std::boolalpha
               << copy << ")" << std::endl;
+    if (strcmp(search_term, str) == 0) {
+      found_term = true; // do this in worker so we can do multiple terms later
+      size_t depth = open_object_count_;
+      size_t parent = 0;
+      if (depth > max_pre_depth) {
+        parent = depth - max_pre_depth;
+      }
+      auto e = fetch_extraction_marker(parent);
+      std::cout << e << std::endl;
+      add_extraction_marker(e);
+
+      std::cout << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
+                << std::endl
+                << depth_markers.size() << std::endl;
+
+      //   extraction_markers.insert(
+      //       std::make_pair(depth, &object_markers.at(depth)));
+    }
     return true;
   }
 
@@ -186,37 +215,62 @@ struct MyHandler
     return true;
   }
 
-  void render_map(std::map<size_t, std::vector<ExtractionMarker>> mm) {
+  void render_map(std::map<size_t, std::vector<OFFSET_START>> mm) {
 
-    for (auto it = mm.begin(); it != mm.end(); ++it) { 
+    for (auto it = mm.begin(); it != mm.end(); ++it) {
       std::cout << it->first << " => ";
       render_vector(it->second);
       std::cout << std::endl;
     }
-
   }
 
-  void render_vector(std::vector<ExtractionMarker> markers) {
+  void render_vector_ptr(std::vector<OFFSET_START *> markers) {
     std::cout << "[" << std::endl;
-     for (auto it = markers.begin(); it != markers.end(); ++it) {
+    for (auto it = markers.begin(); it != markers.end(); ++it) {
 
-        ExtractionMarker em = *it;
-        std::cout << "(" << em.offset_start << " - " << em.offset_end << ")" << std::endl;
-      }
+      auto em = *it;
+      printf("Address of x is %p\n", (void *)em);
+      std::cout << "(" << *em << ")" << std::endl;
+    }
 
     std::cout << "]" << std::endl;
-      
+  }
+
+  void render_vector(std::vector<OFFSET_START> markers) {
+    std::cout << "[" << std::endl;
+    for (auto it = markers.begin(); it != markers.end(); ++it) {
+
+      auto em = *it;
+      std::cout << "(" << em << ")" << std::endl;
+    }
+
+    std::cout << "]" << std::endl;
+  }
+
+  OFFSET_END fetch_offset_end(OFFSET_START offset_start) {
+    auto it = extract_markers.find(offset_start);
+
+    if (it != extract_markers.end()) { // no object open found at this depth
+      return it->second;
+    }
+    return 0;
   }
 
   void Result() {
+
+    render_map(depth_markers);
+
+    render_vector(extraction_markers);
 
     // extract JSON items from offset results
     std::cout << "Extraction at contains (" << extraction_markers.size()
               << "):";
 
-    for (auto em: extraction_markers) {
-        std::cout << "[ tail -c +" << em->offset_start << " | head -c "
-                 << em->offset_end - em->offset_start << "]" << std::endl;
+    for (auto offset_start_ptr : extraction_markers) {
+      auto offset_start = offset_start_ptr;
+      auto offset_end = fetch_offset_end(offset_start);
+      std::cout << "tail -c +" << offset_start << " | head -c "
+                << offset_end - offset_start <<  std::endl;
     }
 
     // std::map<size_t, ExtractionMarker *>::iterator it =
@@ -231,6 +285,17 @@ struct MyHandler
   }
 };
 
+
+void signalHandler( int signum ) {
+   std::cout << "Interrupt signal (" << signum << ") received." << std::endl;
+
+   // cleanup and close up stuff here  
+   // terminate program  
+
+   exit(signum);  
+}
+
+
 int main(int argc, char *argv[]) {
   // std::cout << argc << std::endl;
   char *search_term = (char *)"7777777777";
@@ -240,9 +305,13 @@ int main(int argc, char *argv[]) {
   rapidjson::IStreamWrapper isw(std::cin);
   MyHandler handler((char *)search_term);
   rapidjson::Reader reader;
+
+  signal(SIGINT, signalHandler);  
   // wait
   reader.Parse<rapidjson::kParseIterativeFlag |
                rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
+
+ 
 
   handler.Result();
 
