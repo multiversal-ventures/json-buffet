@@ -34,9 +34,18 @@ struct MyHandler
   */
 
   // <Starting Offset Position, Ending Offset Position>
-  std::map<size_t, ExtractionMarker *> extraction_markers;
+  std::vector<ExtractionMarker *> extraction_markers;
 
   MyHandler(char *_search_term) { search_term = _search_term; }
+
+  ExtractionMarker* fetch_extraction_marker(size_t depth) {
+     auto it = depth_markers.find(open_object_count_);
+    if (it == depth_markers.end()) { // no object open found at this depth
+        return NULL;
+    } else {
+      return &(it->second.back());
+    }
+  }
 
   void start_object_offset(size_t offset) {
 
@@ -53,7 +62,7 @@ struct MyHandler
     } else {
       std::vector<ExtractionMarker> object_markers = it->second;
       object_markers.push_back(em);
-      depth_markers.insert(std::make_pair(open_object_count_, object_markers));
+      it->second = object_markers;
     }
   }
 
@@ -67,18 +76,18 @@ struct MyHandler
       std::cerr << "SHOULDN'T HAPPEN for " << open_object_count_ << std::endl;
     } else {
       std::vector<ExtractionMarker> object_markers = it->second;
-      object_markers.back().offset_end = offset;
-        std::cout << "SETTING " << offset << " For " << object_markers.size()
-              << std::endl;
-        render_vector(object_markers);
-      depth_markers.insert(std::make_pair(open_object_count_, object_markers));
-          render_map(depth_markers);
+      object_markers.back().offset_end = offset + 1;
+        // std::cout << "SETTING " << offset << " For " << object_markers.size()
+        //       << std::endl;
+      it->second = object_markers;
+         
+      
     }
   }
 
   bool StartObject(size_t offset) {
 
-    start_object_offset(offset);
+    start_object_offset(offset + 1);
     open_object_count_++;
     std::cerr << "StartObject(" << open_object_count_ << ") at " << offset
               << std::endl;
@@ -88,8 +97,8 @@ struct MyHandler
   bool EndObject(size_t offset, rapidjson::SizeType memberCount) {
 
     --open_object_count_;
-    end_object_offset(offset);
-        render_map(depth_markers);
+    end_object_offset(offset + 1);
+        //render_map(depth_markers);
     // object_markers.at(open_object_count_).offset_end = offset + 1;
 
     // Wait until If no other open objects. Tag this with the first
@@ -134,10 +143,19 @@ struct MyHandler
 
     if (strcmp(search_term, str) == 0) {
       found_term = true; // do this in worker so we can do multiple terms later
-      size_t depth = open_object_count_ - 1;
+      size_t depth = open_object_count_;
+      size_t parent = 0; 
+      if (depth > max_pre_depth + 1) {
+        parent = depth - max_pre_depth;
+      }
+
+      extraction_markers.push_back(fetch_extraction_marker(parent));
+
       std::cout << "FOUND: " << str << "\nDEPTH: Obj(" << depth << ")"
                 << std::endl
                 << depth_markers.size() << std::endl;
+
+      
       //   extraction_markers.insert(
       //       std::make_pair(depth, &object_markers.at(depth)));
     }
@@ -195,7 +213,10 @@ struct MyHandler
     std::cout << "Extraction at contains (" << extraction_markers.size()
               << "):";
 
-    
+    for (auto em: extraction_markers) {
+        std::cout << "[ tail -c +" << em->offset_start << " | head -c "
+                 << em->offset_end - em->offset_start << "]" << std::endl;
+    }
 
     // std::map<size_t, ExtractionMarker *>::iterator it =
     //     extraction_markers.begin();
