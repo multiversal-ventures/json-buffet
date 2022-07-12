@@ -218,8 +218,12 @@ private:
 typedef std::pair<rapidjson::SizeType, rapidjson::SizeType> ByteRange;
 
 int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <npi id>" << std::endl;
+        return -1;
+    }
   // std::cerr << argc << std::endl;
-    std::unordered_map<std::string, ByteRange> npi_index;
+    std::unordered_map<std::string, std::vector<ByteRange>> npi_index;
 
     rapidjson::IStreamWrapper isw(std::cin);
     JsonBuffet handler([&npi_index](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
@@ -232,7 +236,13 @@ int main(int argc, char *argv[]) {
                     auto npi_array = npi->value.GetArray();
 
                     for (auto item = npi_array.Begin(); item != npi_array.End(); item++) {
-                        npi_index[std::string(item->GetString())] = {offset, length};
+                        auto key = std::string(item->GetString());
+                        auto it = npi_index.find(key);
+                        if (it != npi_index.end()) {
+                            it->second.push_back({offset, length});
+                        } else {
+                            npi_index[key] = {{offset, length}};
+                        }
                     }
                 }
             }
@@ -243,8 +253,13 @@ int main(int argc, char *argv[]) {
     {"in_network", "", "negotiated_rates",""});
     rapidjson::Reader reader;
     reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
-    std::cout << "negotiated rates object for npi_id 1316036643 starts at: " << std::get<0>(npi_index["1316036643"]) << std::endl;
-    std::cout << "negotiated rates object for npi_id 1316036643 ends at: " << std::get<1>(npi_index["1316036643"]) << std::endl;
+
+    auto it = npi_index.find(argv[1]);
+    if (it != npi_index.end()){
+        for (auto const &item : it->second) {
+            std::cout << "npi_id " << it->first << " Buffer: " << std::get<0>(item) << "->" << std::get<1>(item) << std::endl;
+        }
+    }
     return 0;
 }
 /**
