@@ -260,14 +260,9 @@ int main(int argc, char *argv[]) {
 
     // Print out the CSV of the <npi index>, (start, length), (start, length),
     for (auto const& npi_item: npi_index) {
-        std::cout << npi_item.first << ",";
-        bool isFirst = true;
         for (const auto& range: npi_item.second) {
-            if (!isFirst) std::cout << ", ";
-            std::cout << std::get<0>(range) << "," << std::get<1>(range);
-            isFirst = false;
+            std::cout << npi_item.first << "," << std::get<0>(range) << "," << std::get<1>(range) << std::endl;
         }
-        std::cout << std::endl;
     }
     return 0;
 }
