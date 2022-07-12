@@ -23,6 +23,14 @@ std::ostream& operator<<(std::ostream &stream, const std::vector<std::string>& v
     return stream;
 }
 
+struct pair_hash
+{
+    template <class T1, class T2>
+    std::size_t operator() (const std::pair<T1, T2> &pair) const {
+        return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+    }
+};
+
 std::ostream& operator<<(std::ostream &stream, const RapidJsonValue& value) {
     if (value.IsString()) {
         stream << value.GetString();
@@ -218,12 +226,8 @@ private:
 typedef std::pair<rapidjson::SizeType, rapidjson::SizeType> ByteRange;
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <npi id>" << std::endl;
-        return -1;
-    }
   // std::cerr << argc << std::endl;
-    std::unordered_map<std::string, std::vector<ByteRange>> npi_index;
+    std::unordered_map<std::string, std::unordered_set<ByteRange, pair_hash>> npi_index;
 
     rapidjson::IStreamWrapper isw(std::cin);
     JsonBuffet handler([&npi_index](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
@@ -239,7 +243,7 @@ int main(int argc, char *argv[]) {
                         auto key = std::string(item->GetString());
                         auto it = npi_index.find(key);
                         if (it != npi_index.end()) {
-                            it->second.push_back({offset, length});
+                            it->second.insert({offset, length});
                         } else {
                             npi_index[key] = {{offset, length}};
                         }
@@ -254,20 +258,16 @@ int main(int argc, char *argv[]) {
     rapidjson::Reader reader;
     reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
 
-    auto it = npi_index.find(argv[1]);
-    if (it != npi_index.end()){
-        for (auto const &item : it->second) {
-            std::cout << "npi_id " << it->first << " Buffer: " << std::get<0>(item) << "->" << std::get<1>(item) << std::endl;
+    // Print out the CSV of the <npi index>, (start, length), (start, length),
+    for (auto const& npi_item: npi_index) {
+        std::cout << npi_item.first << ",";
+        bool isFirst = true;
+        for (const auto& range: npi_item.second) {
+            if (!isFirst) std::cout << ", ";
+            std::cout << std::get<0>(range) << "," << std::get<1>(range);
+            isFirst = false;
         }
+        std::cout << std::endl;
     }
     return 0;
 }
-/**
-con.execute("CREATE OR REPLACE TABLE extract(id UUID default uuid(), file VARCHAR, extracted_at TIMESTAMP, offs INTEGER, size INTEGER)")
-con.execute("CREATE OR REPLACE TABLE provider_groups(tin VARCHAR PRIMARY KEY, type VARCHAR)")
-con.execute("CREATE OR REPLACE TABLE npi_tin(npi VARCHAR, tin VARCHAR)")
-con.execute("CREATE OR REPLACE TABLE npi_extract(npi VARCHAR, extract UUID)")
-con.execute("CREATE OR REPLACE TABLE negotiated_rates(id UUID default uuid(), tin VARCHAR, negotiated_type VARCHAR, negotiation_rate DOUBLE, expiration_date TIMESTAMP, service_code VARCHAR[], billing_class VARCHAR, billing_code_modifier VARCHAR[], additional_information VARCHAR)")
-con.execute("CREATE OR REPLACE TABLE npi_negotiated_rates(negotiate_rate_id UUID, npi VARCHAR)")
-
-**/
