@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
                     auto npi_array = npi->value.GetArray();
 
                     for (auto item = npi_array.Begin(); item != npi_array.End(); item++) {
-                        npi_index[std::string(item->GetString())] = {offset, offset + length};
+                        npi_index[std::string(item->GetString())] = {offset, length};
                     }
                 }
             }
@@ -243,8 +243,16 @@ int main(int argc, char *argv[]) {
     {"in_network", "", "negotiated_rates",""});
     rapidjson::Reader reader;
     reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
-    std::cout << "negotiated rates object for npi_id 1111111111 starts at: " << std::get<0>(npi_index["1111111111"]) << std::endl;
-    std::cout << "negotiated rates object for npi_id 2222222222 starts at: " << std::get<0>(npi_index["2222222222"]) << std::endl;
-    std::cout << "negotiated rates object for npi_id 7777777777 starts at: " << std::get<0>(npi_index["7777777777"]) << std::endl;
+    std::cout << "negotiated rates object for npi_id 1316036643 starts at: " << std::get<0>(npi_index["1316036643"]) << std::endl;
+    std::cout << "negotiated rates object for npi_id 1316036643 ends at: " << std::get<1>(npi_index["1316036643"]) << std::endl;
     return 0;
 }
+/**
+con.execute("CREATE OR REPLACE TABLE extract(id UUID default uuid(), file VARCHAR, extracted_at TIMESTAMP, offs INTEGER, size INTEGER)")
+con.execute("CREATE OR REPLACE TABLE provider_groups(tin VARCHAR PRIMARY KEY, type VARCHAR)")
+con.execute("CREATE OR REPLACE TABLE npi_tin(npi VARCHAR, tin VARCHAR)")
+con.execute("CREATE OR REPLACE TABLE npi_extract(npi VARCHAR, extract UUID)")
+con.execute("CREATE OR REPLACE TABLE negotiated_rates(id UUID default uuid(), tin VARCHAR, negotiated_type VARCHAR, negotiation_rate DOUBLE, expiration_date TIMESTAMP, service_code VARCHAR[], billing_class VARCHAR, billing_code_modifier VARCHAR[], additional_information VARCHAR)")
+con.execute("CREATE OR REPLACE TABLE npi_negotiated_rates(negotiate_rate_id UUID, npi VARCHAR)")
+
+**/
