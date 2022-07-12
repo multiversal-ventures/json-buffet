@@ -215,10 +215,14 @@ private:
     std::vector<rapidjson::Document> mCurrentResult;
 };
 
+typedef std::pair<rapidjson::SizeType, rapidjson::SizeType> ByteRange;
+
 int main(int argc, char *argv[]) {
   // std::cerr << argc << std::endl;
+    std::unordered_map<std::string, ByteRange> npi_index;
+
     rapidjson::IStreamWrapper isw(std::cin);
-    JsonBuffet handler([](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
+    JsonBuffet handler([&npi_index](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
         auto provider_groups = value.FindMember("provider_groups");
         if (provider_groups != value.MemberEnd()) {
             auto provider_groups_array = provider_groups->value.GetArray();
@@ -226,19 +230,9 @@ int main(int argc, char *argv[]) {
                 auto npi = provider->FindMember("npi");
                 if (npi != provider->MemberEnd()) {
                     auto npi_array = npi->value.GetArray();
-                    bool targetFound = false;
 
                     for (auto item = npi_array.Begin(); item != npi_array.End(); item++) {
-                        if (strcmp(item->GetString(), "7777777777") == 0) {
-                            targetFound = true;
-                            break;
-                        }
-                    }
-
-                    if (targetFound) {
-                        std::cout << "value: " << value << std::endl;
-                        std::cout << "range: " << offset << "," << offset + length << std::endl;
-                        break;
+                        npi_index[std::string(item->GetString())] = {offset, offset + length};
                     }
                 }
             }
@@ -249,7 +243,8 @@ int main(int argc, char *argv[]) {
     {"in_network", "", "negotiated_rates",""});
     rapidjson::Reader reader;
     reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
+    std::cout << "negotiated rates object for npi_id 1111111111 starts at: " << std::get<0>(npi_index["1111111111"]) << std::endl;
+    std::cout << "negotiated rates object for npi_id 2222222222 starts at: " << std::get<0>(npi_index["2222222222"]) << std::endl;
+    std::cout << "negotiated rates object for npi_id 7777777777 starts at: " << std::get<0>(npi_index["7777777777"]) << std::endl;
     return 0;
-
-  return 0;
 }
