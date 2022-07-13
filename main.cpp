@@ -1,20 +1,8 @@
-#include "jsonbuffet.h"
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
-#include <unordered_set>
-#include <functional>
-#include <sstream>
+#include "jsonbuffet.h"
+#include "utils.h"
 
-std::vector<std::string> split(const std::string& s, char delimiter) {
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (std::getline(tokenStream, token, delimiter)) {
-       tokens.push_back(token);
-    }
-    return tokens;
-}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -26,12 +14,12 @@ int main(int argc, char *argv[]) {
 
     rapidjson::IStreamWrapper isw(std::cin);
     JsonBuffet buffet([](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
-        std::cout << "Offset: " << offset << std::endl;
-        std::cout << "Length: " << length << std::endl;
-        std::cout << value << std::endl;
-        return true;
-    },
-    split(argv[1], '/'));
+                        std::cout << "Offset: " << offset << std::endl;
+                        std::cout << "Length: " << length << std::endl;
+                        std::cout << value << std::endl;
+                        return true;
+                    },
+                    Utils::split(argv[1], '/'));
     buffet.Consume(isw);
 
     return 0;
