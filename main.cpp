@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
+#include <sstream>
 
 typedef rapidjson::GenericValue<rapidjson::UTF8<char>> RapidJsonValue;
 typedef std::function<bool(rapidjson::SizeType, rapidjson::SizeType, const std::string&, const RapidJsonValue&)> Callback;
@@ -50,17 +51,26 @@ std::ostream& operator<<(std::ostream &stream, const RapidJsonValue& value) {
         stream << value.GetDouble();
     } else if (value.IsArray()) {
         stream << "[";
-        for (auto currentValue = value.Begin(); currentValue != value.End(); currentValue++) {
+        auto currentValue = value.Begin();
+        if (currentValue != value.End()) {
             stream << *currentValue;
+            currentValue++;
+        }
+        for (; currentValue != value.End(); currentValue++) {
             stream << ", ";
+            stream << *currentValue;
         }
         stream << "]";
     } else if (value.IsObject()){
         stream << "{";
-        for (auto member = value.MemberBegin(); member != value.MemberEnd(); member++) {
-            stream << member->name.GetString() << ": ";
-            stream << member->value;
+        auto member = value.MemberBegin();
+        if (member != value.MemberEnd()) {
+            stream << member->name.GetString() << ": " << member->value;
+            member++;
+        }
+        for (; member != value.MemberEnd(); member++) {
             stream << ", ";
+            stream << member->name.GetString() << ": " << member->value;
         }
         stream << "}";
     } else {
@@ -68,6 +78,17 @@ std::ostream& operator<<(std::ostream &stream, const RapidJsonValue& value) {
     }
 
     return stream;
+}
+
+std::vector<std::string> split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter))
+    {
+       tokens.push_back(token);
+    }
+    return tokens;
 }
 
 
@@ -226,43 +247,23 @@ private:
 typedef std::pair<rapidjson::SizeType, rapidjson::SizeType> ByteRange;
 
 int main(int argc, char *argv[]) {
-  // std::cerr << argc << std::endl;
-    std::unordered_map<std::string, std::unordered_set<ByteRange, pair_hash>> npi_index;
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " /path/to/item/of/interest < /path/to/json" << std::endl;
+        std::cerr << "Note: You can use empty path components to represent an element of an array." << std::endl;
+        std::cerr << R"(eg. item//key/ on  { "item": [ {"key": "value1"}, {"key": "value2"} ] } fetches value1 and value2)" << std::endl;
+        return -1;
+    }
 
     rapidjson::IStreamWrapper isw(std::cin);
-    JsonBuffet handler([&npi_index](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
-        auto provider_groups = value.FindMember("provider_groups");
-        if (provider_groups != value.MemberEnd()) {
-            auto provider_groups_array = provider_groups->value.GetArray();
-            for (auto provider = provider_groups_array.Begin(); provider != provider_groups_array.End(); provider++) {
-                auto npi = provider->FindMember("npi");
-                if (npi != provider->MemberEnd()) {
-                    auto npi_array = npi->value.GetArray();
-
-                    for (auto item = npi_array.Begin(); item != npi_array.End(); item++) {
-                        auto key = std::string(item->GetString());
-                        auto it = npi_index.find(key);
-                        if (it != npi_index.end()) {
-                            it->second.insert({offset, length});
-                        } else {
-                            npi_index[key] = {{offset, length}};
-                        }
-                    }
-                }
-            }
-        }
-
+    JsonBuffet handler([](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
+        std::cout << "Offset: " << offset << std::endl;
+        std::cout << "Length: " << length << std::endl;
+        std::cout << value << std::endl;
         return true;
     },
-    {"in_network", "", "negotiated_rates",""});
+    split(argv[1], '/'));
     rapidjson::Reader reader;
     reader.Parse<rapidjson::kParseIterativeFlag | rapidjson::kParseNumbersAsStringsFlag>(isw, handler);
 
-    // Print out the CSV of the <npi index>, (start, length), (start, length),
-    for (auto const& npi_item: npi_index) {
-        for (const auto& range: npi_item.second) {
-            std::cout << npi_item.first << "," << std::get<0>(range) << "," << std::get<1>(range) << std::endl;
-        }
-    }
     return 0;
 }
