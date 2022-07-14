@@ -25,26 +25,36 @@ int main(int argc, char *argv[]) {
 
     int currentChunk = 0;
     std::ofstream file;
+    bool isFirstElement = true;
     file.open(fileName(currentChunk));
+    file << "[ ";
 
     rapidjson::IStreamWrapper isw(std::cin);
     JsonBuffet buffet([&](rapidjson::SizeType, rapidjson::SizeType, const std::string&, const RapidJsonValue& value) -> bool {
                         if (file.tellp() > chunkSizeThreshold) {
                             std::cout << "Done writing chunk " << currentChunk << std::endl;
+                            file << " ]";
                             file << std::flush;
                             file.close();
                             currentChunk++;
                             file.open(fileName(currentChunk));
+                            file << "[ ";
+                            isFirstElement = true;
                         }
                         std::stringstream buffer;
-                        buffer << value << std::endl;
+                        if (!isFirstElement) {
+                            buffer << ", ";
+                        }
+                        buffer << value;
                         file << buffer.rdbuf();
+                        isFirstElement = false;
                         return true;
                     },
                     path);
     buffet.Consume(isw);
 
     std::cout << "Done writing chunk " << currentChunk << std::endl;
+    file << "]";
     file << std::flush;
     file.close();
 
