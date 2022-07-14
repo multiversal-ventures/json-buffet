@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 
         return true;
     },
-    {"in_network", "", "negotiated_rates",""});
+    {"", "negotiated_rates", "" });
     buffet.Consume(isw);
 
     // Print out the CSV of the <npi index>, (start, length), (start, length),

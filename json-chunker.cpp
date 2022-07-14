@@ -4,7 +4,7 @@
 #include "utils.h"
 
 std::string fileName(int i) {
-    return "chunk _" + std::to_string(i) + ".json";
+    return "chunk_" + std::to_string(i) + ".json";
 }
 
 int main(int argc, char *argv[]) {
