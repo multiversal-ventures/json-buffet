@@ -22,6 +22,9 @@ int main(int argc, char *argv[]) {
 
     rapidjson::IStreamWrapper isw(std::cin);
     JsonBuffet buffet([&npi_index](rapidjson::SizeType offset, rapidjson::SizeType length, const std::string& key, const RapidJsonValue& value) -> bool {
+        if (!value.IsObject()) {
+            return true;
+        }
         auto provider_groups = value.FindMember("provider_groups");
         if (provider_groups != value.MemberEnd()) {
             auto provider_groups_array = provider_groups->value.GetArray();
