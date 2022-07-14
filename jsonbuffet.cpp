@@ -144,7 +144,7 @@ std::ostream &operator<<(std::ostream &stream, const std::vector<std::string> &v
 
 std::ostream &operator<<(std::ostream &stream, const RapidJsonValue &value) {
     if (value.IsString()) {
-        stream << value.GetString();
+        stream << '"' << value.GetString() << '"';
     } else if (value.IsBool()) {
         stream << std::boolalpha << value.GetBool();
     } else if (value.IsUint()) {
@@ -159,6 +159,8 @@ std::ostream &operator<<(std::ostream &stream, const RapidJsonValue &value) {
         stream << value.GetFloat();
     } else if (value.IsDouble() || value.IsLosslessDouble()) {
         stream << value.GetDouble();
+    } else if (value.IsNull()) {
+        stream << "null";
     } else if (value.IsArray()) {
         stream << "[";
         auto currentValue = value.Begin();
@@ -175,12 +177,12 @@ std::ostream &operator<<(std::ostream &stream, const RapidJsonValue &value) {
         stream << "{";
         auto member = value.MemberBegin();
         if (member != value.MemberEnd()) {
-            stream << member->name.GetString() << ": " << member->value;
+            stream << '"' << member->name.GetString() << "\": " << member->value;
             member++;
         }
         for (; member != value.MemberEnd(); member++) {
             stream << ", ";
-            stream << member->name.GetString() << ": " << member->value;
+            stream << '"' << member->name.GetString() << "\": " << member->value;
         }
         stream << "}";
     } else {
