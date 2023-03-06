@@ -50,17 +50,19 @@ Length: 68
 
 Additional Binaries provided:
 
-* json-chunker:
-       Extracts chunks of objects at the specified path into separate files.
-       Usage: ./json-chunker[chunksize_threshold=104857600] /path/to/item/of/interest < /path/to/json
-       Note: You can use empty path components to represent an element of an array.
-       eg. item//key/ on  { "item": [ {"key": "value1"}, {"key": "value2"} ] } creates chunks containing value1 value2
+* json-chunker: Extracts chunks of objects at the specified path into separate files.
+```
+    Usage: ./json-chunker[chunksize_threshold=104857600] /path/to/item/of/interest < /path/to/json
+    Note: You can use empty path components to represent an element of an array.
+    eg. item//key/ on  { "item": [ {"key": "value1"}, {"key": "value2"} ] } creates chunks containing value1 value2
+```
 
-* json-indexer:
-       Processes json files like tests/test.json to print out an CSV index of npi values: <npi index>, start, length ...
-       Usage: `curl https://path/to/big_json.json | ./json-indexer > index.db`
-       You can then use something like: `python ./json-fetcher --db index.db --url http://path/to/big_json.json --key "1111111111"`
-       Please note that your server needs to support http range requests for json-fetcher to work
+* json-indexer: Processes json files like tests/test.json to print out an CSV index of npi values: <npi index>, start, length ...
+```
+    Usage: `curl https://path/to/big_json.json | ./json-indexer > index.db`
+    You can then use something like: `python ./json-fetcher --db index.db --url http://path/to/big_json.json --key "1111111111"`
+    Please note that your server needs to support http range requests for json-fetcher to work
+```
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
