@@ -5,8 +5,7 @@ import json
 def fetch(url, start, length):
     headers = {"Range": "bytes={}-{}".format(start, start+length)}
     r = requests.get(url, headers=headers)
-
-    return r.text.rstrip().rstrip(',')
+    return r.text.rstrip().rstrip(',').rstrip(']')
 
 def prettify_json(text):
     return json.dumps(json.loads(text), indent=2)
