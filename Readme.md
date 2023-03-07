@@ -73,3 +73,4 @@ Please make sure to update tests as appropriate.
 ## TODO
 * [ ] Support Regex paths to allow watching for multiple paths
 * [ ] Refactor the JsonBuffet code to use iterators instead of callbacks
+* [ ] Add options to export data to JSONL, Parquet
